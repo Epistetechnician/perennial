@@ -30,3 +30,35 @@ p {
 .btn.btn-ghost {
   @apply shadow-none;
 }
+
+.mapboxgl-canvas {
+  border-radius: 0.5rem;
+}
+
+.mapboxgl-ctrl-group {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  border: none !important;
+}
+
+.mapboxgl-ctrl-group button {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
+  filter: invert(1);
+}
+
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+.mapboxgl-ctrl-attrib {
+  display: none !important;
+}
+
+.search-result-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

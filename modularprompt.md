@@ -1,77 +1,167 @@
-## Project Overview
-Perennial is a Web3 dapp that revolutionizes environmental impact measurement and verification using blockchain technology. It combines prediction markets, dynamic NFTs, and reputation-based governance to create a transparent ecosystem for environmental projects.
+# Project Overview
+Perennial is an advanced Web3 dapp that creates prediction markets for public goods and environmental projects. It leverages blockchain technology to provide transparent and decentralized impact measurement and verification, with a focus on integrating cutting-edge protocols and AI-enhanced analytics.
 
 ## Core Functionalities
 1. Prediction Markets for Public Goods
-2. Dynamic Impact NFTs
-3. Decentralized Verification System
+2. Market Creation and Management
+3. Buying and Selling Shares
 4. Reputation-Based Staking
-5. AI-Enhanced Analytics
-6. Carbon Credit Quality Assessment
-7. On-ground Verification using Astral
-8. Integration with Toucan's tokenized carbon markets
-
-## Docs
-For detailed documentation, refer to the following:
-- Project details: 
+5. Hyper-Local Market Support
+6. AI-Enhanced Analytics (implemented)
+7. Integration with Toucan's tokenized carbon markets (in progress)
+8. Integration with Allo Protocol for fund allocation (implemented)
+9. Integration with Astral for location verification (in progress)
 
 ## Current File Structure
-- /src
-  - /components
-  - /pages
-  - /services
-- /contracts
-- /scripts
-- /test
+- /packages
+  - /nextjs
+    - /app
+      - perrenialpredictor.tsx (main component)
+    - /components
+      - AstralMap.tsx
+    - /contracts
+    - /generated
+    - /hooks
+      - scaffold-eth
+  - /hardhat
+    - /contracts
+      - perennialprediction.sol
+    - /deploy
+    - /test
+
+## Smart Contracts
+The main smart contract `perennialprediction.sol` has been expanded to include:
+- Creating markets with hyper-local support
+- Buying and selling shares with dynamic pricing
+- Resolving markets with multi-factor outcomes
+- Managing market creators with reputation system
+- Integration with Allo Protocol for fund allocation
+
+## Frontend Components
+The `PerennialPredictor` component has been significantly enhanced:
+- Displays markets with interactive charts
+- Creates new markets with advanced parameters
+- Interacts with the smart contract for all core functionalities
+- Implements AI-enhanced analytics for market trends
+- Integrates with Allo Protocol for fund management
+- Incorporates AstralMap for hyper-local market visualization
+
+## Blockchain Integration
+- Utilizing wagmi hooks for efficient blockchain interactions
+- Implemented custom hooks for complex contract interactions
+- Enhanced error handling and transaction management
+
+## AI Integration
+- Implemented AI-enhanced analytics for market trend prediction
+- Utilizing machine learning models for impact assessment
+
+## Allo Protocol Integration
+- Successfully integrated Allo Protocol for fund allocation
+- Created pools for each prediction market
+- Implemented fund distribution based on market outcomes
+
+## Next Steps
+1. Complete Astral integration for precise location verification
+2. Finalize Toucan Protocol integration for carbon credit markets
+3. Enhance AI models for more accurate impact predictions
+4. Implement comprehensive frontend and smart contract tests
+5. Optimize gas usage in smart contracts
+6. Develop a governance module for community-driven decision making
+7. Implement a more sophisticated reputation system
+8. Prepare for mainnet deployment and security audits
 
 ## Additional Requirements
 
-1. Project Setup
-- Use Scaffold-ETH 2 as the base framework
-- All new components should go in /packages/nextjs/components and be named like example-component.tsx
-- All new pages go in /packages/nextjs/app
-- Use the Next.js 14 app router
-- All data fetching should be done in a server component and pass the data down as props
-- Client components (useState, hooks, etc) require that 'use client' is set at the top of the file
+1. Smart Contract Optimization
+   - Implement gas optimization techniques
+   - Conduct thorough security audits
 
-2. Smart Contract Development:
-- Develop smart contracts in Solidity 0.8.20 or 0.8.19
-- Use Hardhat for contract compilation, testing, and deployment
-- Implement contracts for prediction markets, NFT minting, and carbon credit tracking
+2. Frontend Enhancements
+   - Improve UX/UI for better user engagement
+   - Implement more interactive data visualizations
 
-3. Frontend Development:
-- Use React with TypeScript for frontend development
-- Implement components for prediction market dashboard, carbon retirement interface, and impact visualization
-- Utilize Tailwind CSS for styling
+3. Scalability Considerations
+   - Explore Layer 2 solutions for reduced transaction costs
+   - Implement state channel or optimistic rollup techniques
 
-4. Blockchain Integration:
-- Use ethers.js or viem for blockchain interactions
-- Implement wallet connection using ConnectKit or similar libraries
-- Deploy contracts to Sepolia testnet for testing
+4. Governance and DAO Integration
+   - Develop a governance token for community participation
+   - Implement on-chain voting mechanisms
 
-5. External Integrations:
-- Integrate with Toucan Protocol for tokenized carbon credits
-- Use Astral for location verification
-- Implement AI-enhanced analytics for impact prediction
+5. Interoperability
+   - Explore cross-chain functionalities for wider reach
+   - Implement bridges to other popular blockchain networks
 
-6. Environment Variables:
-- Store all sensitive information (API keys, contract addresses) in environment variables
-- Use a `.env.local` file for local development and ensure it's listed in `.gitignore`
-- For production, set environment variables in the deployment platform (e.g., Vercel)
+6. Privacy Features
+   - Investigate zero-knowledge proofs for enhanced privacy
+   - Implement optional privacy features for sensitive markets
 
-7. Error Handling and Logging:
-- Implement comprehensive error handling for all blockchain interactions and API calls
-- Log errors on the server side for debugging
-- Display user-friendly error messages in the UI
+7. Mobile Responsiveness
+   - Ensure full functionality on mobile devices
+   - Consider developing a mobile app for better user experience
 
-8. Testing:
-- Write unit tests for smart contracts using Hardhat
-- Implement frontend tests using React Testing Library
+8. Regulatory Compliance
+   - Implement KYC/AML procedures where necessary
+   - Ensure compliance with relevant prediction market regulations
 
-9. Documentation:
-- Maintain clear and up-to-date documentation for the project
-- Include setup instructions, architecture overview, and API documentation
+9. Data Analytics and Reporting
+   - Develop comprehensive analytics dashboard
+   - Implement automated reporting for market performance
 
-10. Deployment:
-- Deploy the frontend to Vercel or a similar platform
-- Deploy smart contracts to the Sepolia testnet
+10. Community Building
+    - Develop incentive structures for early adopters and power users
+    - Create educational content to onboard new users to the platform
+
+This updated project overview reflects the significant progress made in integrating advanced features like AI analytics and Allo Protocol, while also outlining the next steps for further enhancements and optimizations.
+
+
+# Perennial Prediction Market - Technical Documentation
+
+## Project Description
+Perennial is a sophisticated Web3 platform for prediction markets focused on public goods and environmental projects. The system combines advanced smart contract architecture with AI-enhanced analytics, reputation systems, and multi-protocol integrations.
+
+## Core Architecture
+
+### Smart Contract Components
+
+#### Market Structure
+- **Market Types**
+  - FINITE: Traditional markets with definite end times
+  - INFINITE: Ongoing markets for continuous assessment
+  - HYBRID: Combines characteristics of both types
+
+#### Position Management
+- Dynamic share pricing using market depth
+- Early unstaking penalties to prevent manipulation
+- Proportional reward distribution
+- Position tracking with timestamps
+
+#### Reputation System
+- Score-based authorization
+- Success-based reputation updates
+- Market creation privileges
+- Stake-weighted influence
+
+### Security Features
+1. **Access Control**
+   - Ownable pattern for admin functions
+   - Role-based market creation
+   - Reputation thresholds
+
+2. **Safety Mechanisms**
+   - ReentrancyGuard for all value transfers
+   - Pausable functionality for emergencies
+   - Emergency withdrawal capabilities
+   - Minimum stake periods
+
+3. **Economic Security**
+   - Dynamic pricing to prevent manipulation
+   - Penalty system for early unstaking
+   - Maximum stake percentages
+   - Reputation-based participation limits
+
+## Technical Implementation
+
+### Smart Contract Functions
+
+#### Core Market Operations

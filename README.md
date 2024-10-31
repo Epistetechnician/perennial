@@ -1,80 +1,147 @@
-# 🏗 Scaffold-ETH 2
+# Perennial: Decentralized Impact Prediction Markets
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+![Perennial Logo](public/perennial-logo.png)
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+## Overview
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
+Perennial is a revolutionary Web3 platform that combines prediction markets with environmental impact measurement. By leveraging blockchain technology, AI analytics, and decentralized verification systems, Perennial creates transparent and efficient markets for public goods and environmental projects.
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+## Key Features
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+- **Prediction Markets for Public Goods**
+  - Create and participate in markets for environmental outcomes
+  - Stake ETH on predictions with dynamic pricing
+  - Reputation-based participation system
 
-## Requirements
+- **Hyper-Local Markets**
+  - Location-verified environmental impact tracking
+  - Integration with Astral Protocol for geospatial verification
+  - Local community engagement and verification
 
-Before you begin, you need to install the following tools:
+- **AI-Enhanced Analytics**
+  - Real-time market probability calculations
+  - Trend analysis and impact predictions
+  - Carbon credit quality assessment
 
-- [Node (>= v18.18)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+- **Blockchain Integration**
+  - Built on Ethereum (Sepolia Testnet)
+  - Integration with Toucan Protocol for carbon credits
+  - Allo Protocol integration for fund allocation
 
-## Quickstart
+## Technology Stack
 
-To get started with Scaffold-ETH 2, follow the steps below:
+- **Frontend**
+  - Next.js 14 (App Router)
+  - TypeScript
+  - Tailwind CSS
+  - wagmi v2 for Web3 interactions
+  - RainbowKit for wallet connections
 
-1. Install dependencies if it was skipped in CLI:
+- **Smart Contracts**
+  - Solidity 0.8.20
+  - Hardhat development environment
+  - OpenZeppelin contracts
 
+- **External Integrations**
+  - Toucan Protocol (Carbon Credits)
+  - Astral Protocol (Location Verification)
+  - Allo Protocol (Fund Distribution)
+
+## Getting Started
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/perennial.git
+cd perennial
 ```
-cd my-dapp-example
+
+2.Install dependencies:
+
+```bash
 yarn install
 ```
 
-2. Run a local network in the first terminal:
+3.Set up environment variables:
 
-```
-yarn chain
-```
-
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/hardhat/hardhat.config.ts`.
-
-3. On a second terminal, deploy the test contract:
-
-```
-yarn deploy
+```bash
+cp packages/nextjs/.env.example packages/nextjs/.env.local
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+4.Start the development server:
 
-4. On a third terminal, start your NextJS app:
-
-```
-yarn start
+```bash
+yarn dev
 ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+## Project Structure
 
-Run smart contract test with `yarn hardhat:test`
+perennial/
+├── packages/
+│ ├── nextjs/
+│ │ ├── app/
+│ │ ├── components/
+│ │ ├── hooks/
+│ │ └── services/
+│ └── hardhat/
+│ ├── contracts/
+│ ├── deploy/
+│ └── test/
 
-- Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/hardhat/deploy`
+## Smart Contracts
 
+Our core smart contracts handle:
 
-## Documentation
+- Market creation and management
+- Share trading and settlement
+- Reputation tracking
+- Carbon credit integration
+- Location verification
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+## Contributing
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Contributing to Scaffold-ETH 2
+## Testing
 
-We welcome contributions to Scaffold-ETH 2!
+### Run frontend tests
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+```bash
+Run frontend tests
+cd packages/nextjs
+```
+
+### Run contract tests
+
+```bash
+yarn test
+Run contract tests
+cd packages/hardhat
+yarn test
+```
+
+## Deployment
+
+The application is deployed on:
+
+- Frontend: Vercel
+- Smart Contracts: Sepolia Testnet
+
+## License
+
+MIT License - see LICENSE.md for details
+
+## Contact
+
+Project Link: [https://github.com/yourusername/perennial](https://github.com/yourusername/perennial)
+
+## Acknowledgments
+
+- Scaffold-ETH 2 for the initial framework
+- Toucan Protocol for carbon credit infrastructure
+- Astral Protocol for location verification
+- Allo Protocol for fund distribution

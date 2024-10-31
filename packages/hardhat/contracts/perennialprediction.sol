@@ -1,266 +1,241 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract perennialprediction is Ownable {
-    struct Market {
+/**
+ * @title perennialprediction
+ * @dev Advanced prediction market for public goods and environmental projects
+ */
+contract perennialprediction is Ownable, ReentrancyGuard, Pausable {
+    using ECDSA for bytes32;
+
+    // Constants for precision handling
+    uint256 constant PRECISION = 1e18;
+    uint256 constant MIN_STAKE = 0.001 ether; // Minimum stake of 0.001 ETH
+    uint256 constant MAX_STAKE = 100 ether;   // Maximum stake of 100 ETH
+
+    // Structs with optimized storage
+    struct MarketCore {
         string title;
         string description;
-        uint256 endTime;
+        uint64 endTime;
         bool isResolved;
-        uint256 yesShares;
-        uint256 noShares;
-        uint256 totalStake;
-        bool outcome;
         bool isHyperLocal;
+        string marketType;
+    }
+
+    struct MarketData {
+        uint128 yesShares;
+        uint128 noShares;
+        uint128 totalStake;
+        uint128 minStake;
+        uint128 maxStake;
+        uint64 reputationRequired;
+        bool outcome;
+    }
+
+    struct MarketLocation {
         int256 latitude;
         int256 longitude;
+        uint128 poolId;
+        address creator;
     }
 
-    struct Prediction {
-        uint256 marketId;
-        address predictor;
-        uint256 predictedValue;
-        uint256 stake;
-        uint256 confidence;
-        bool isYes;
-        bool resolved;
+    struct UserPosition {
+        uint128 yesShares;
+        uint128 noShares;
+        uint128 stakedAmount;
+        uint64 lastInteractionTime;
+        bool hasClaimedRewards;
     }
 
-    IERC20 public immutable token;
-    uint256 public marketCount;
-    uint256 public predictionIdCounter;
-    uint256 public constant MINIMUM_STAKE = 100;
-    uint256 public constant PREDICTION_WINDOW = 7 days;
+    // Events
+    event SharesTraded(
+        uint256 indexed marketId,
+        address indexed trader,
+        bool isYes,
+        uint256 shares,
+        uint256 stakeAmount,
+        bool isBuy
+    );
 
-    mapping(uint256 => Market) public markets;
-    mapping(uint256 => mapping(address => uint256)) public userYesShares;
-    mapping(uint256 => mapping(address => uint256)) public userNoShares;
-    mapping(uint256 => Prediction) public predictions;
-    mapping(address => uint256) public predictorScores;
-    mapping(address => uint256) public accuracyHistory;
-    mapping(address => bool) public marketCreators;
+    event MarketCreated(
+        uint256 indexed marketId,
+        address indexed creator,
+        string title,
+        uint256 endTime
+    );
 
-    // Reentrancy guard
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-    uint256 private _status;
-
-    event MarketCreated(uint256 indexed marketId, string title, uint256 endTime, bool isHyperLocal);
-    event SharesBought(uint256 indexed marketId, address indexed user, bool isYes, uint256 amount);
-    event SharesSold(uint256 indexed marketId, address indexed user, bool isYes, uint256 amount);
     event MarketResolved(uint256 indexed marketId, bool outcome);
-    event PredictionCreated(uint256 indexed predictionId, address indexed predictor, uint256 marketId, bool isYes);
-    event PredictionResolved(uint256 indexed predictionId, bool success, uint256 reward);
-    event MarketCreatorAdded(address indexed creator);
-    event MarketCreatorRemoved(address indexed creator);
+    event RewardsClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
 
-    constructor(IERC20 _token) Ownable(msg.sender) {
-        token = _token;
-        predictionIdCounter = 1;
-        _status = _NOT_ENTERED;
-    }
+    // State variables
+    mapping(uint256 => MarketCore) public marketCores;
+    mapping(uint256 => MarketData) public marketData;
+    mapping(uint256 => MarketLocation) public marketLocations;
+    mapping(uint256 => mapping(address => UserPosition)) public positions;
+    uint256 public marketCount;
 
-    modifier nonReentrant() {
-        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
-        _status = _ENTERED;
-        _;
-        _status = _NOT_ENTERED;
-    }
+    constructor() Ownable(msg.sender) {}
 
-    modifier onlyMarketCreator() {
-        require(owner() == _msgSender() || marketCreators[_msgSender()], "Caller is not a market creator");
-        _;
-    }
-
-    function addMarketCreator(address _creator) external onlyOwner {
-        marketCreators[_creator] = true;
-        emit MarketCreatorAdded(_creator);
-    }
-
-    function removeMarketCreator(address _creator) external onlyOwner {
-        marketCreators[_creator] = false;
-        emit MarketCreatorRemoved(_creator);
-    }
-
+    // Function to create a new market
     function createMarket(
         string memory _title,
         string memory _description,
-        uint256 _duration,
+        uint64 _endTime,
         bool _isHyperLocal,
         int256 _latitude,
-        int256 _longitude
-    ) external onlyMarketCreator {
-        require(_duration > 0, "Duration must be positive");
-        
-        unchecked {
-            marketCount++;
-        }
-        markets[marketCount] = Market({
+        int256 _longitude,
+        uint128 _minStake,
+        uint128 _maxStake
+    ) external whenNotPaused nonReentrant returns (uint256) {
+        require(bytes(_title).length > 0, "Title required");
+        require(_endTime > block.timestamp, "Invalid end time");
+        require(_minStake >= MIN_STAKE, "Stake too low");
+        require(_maxStake <= MAX_STAKE, "Stake too high");
+        require(_maxStake > _minStake, "Invalid stake range");
+
+        marketCount++;
+        uint256 marketId = marketCount;
+
+        marketCores[marketId] = MarketCore({
             title: _title,
             description: _description,
-            endTime: block.timestamp + _duration,
+            endTime: _endTime,
             isResolved: false,
+            isHyperLocal: _isHyperLocal,
+            marketType: _description
+        });
+
+        marketData[marketId] = MarketData({
             yesShares: 0,
             noShares: 0,
             totalStake: 0,
-            outcome: false,
-            isHyperLocal: _isHyperLocal,
-            latitude: _latitude,
-            longitude: _longitude
+            minStake: _minStake,
+            maxStake: _maxStake,
+            reputationRequired: 0,
+            outcome: false
         });
 
-        emit MarketCreated(marketCount, _title, markets[marketCount].endTime, _isHyperLocal);
+        marketLocations[marketId] = MarketLocation({
+            latitude: _latitude,
+            longitude: _longitude,
+            poolId: 0,
+            creator: msg.sender
+        });
+
+        emit MarketCreated(marketId, msg.sender, _title, _endTime);
+        return marketId;
     }
 
-    function buyShares(uint256 _marketId, bool _isYes, uint256 _amount) external nonReentrant {
-        Market storage market = markets[_marketId];
-        require(!market.isResolved, "Market is already resolved");
-        require(block.timestamp < market.endTime, "Market has ended");
-
-        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
-
-        uint256 shares = _calculateShares(_marketId, _isYes, _amount);
-        
-        if (_isYes) {
-            market.yesShares += shares;
-            userYesShares[_marketId][msg.sender] += shares;
-        } else {
-            market.noShares += shares;
-            userNoShares[_marketId][msg.sender] += shares;
-        }
-
-        market.totalStake += _amount;
-
-        emit SharesBought(_marketId, msg.sender, _isYes, shares);
-    }
-
-    function sellShares(uint256 _marketId, bool _isYes, uint256 _shares) external nonReentrant {
-        Market storage market = markets[_marketId];
-        require(!market.isResolved, "Market is already resolved");
-        require(block.timestamp < market.endTime, "Market has ended");
-
-        uint256 payout = _calculatePayout(_marketId, _isYes, _shares);
-
-        if (_isYes) {
-            require(userYesShares[_marketId][msg.sender] >= _shares, "Not enough YES shares");
-            market.yesShares -= _shares;
-            userYesShares[_marketId][msg.sender] -= _shares;
-        } else {
-            require(userNoShares[_marketId][msg.sender] >= _shares, "Not enough NO shares");
-            market.noShares -= _shares;
-            userNoShares[_marketId][msg.sender] -= _shares;
-        }
-
-        market.totalStake -= payout;
-
-        require(token.transfer(msg.sender, payout), "Token transfer failed");
-
-        emit SharesSold(_marketId, msg.sender, _isYes, _shares);
-    }
-
-    function createPrediction(
+    // Function to trade shares
+    function tradeShares(
         uint256 _marketId,
         bool _isYes,
-        uint256 _predictedValue,
-        uint256 _confidence
-    ) external payable nonReentrant returns (uint256) {
-        require(msg.value >= MINIMUM_STAKE, "Insufficient stake");
-        Market storage market = markets[_marketId];
-        require(!market.isResolved, "Market is already resolved");
-        require(block.timestamp < market.endTime, "Market has ended");
+        uint256 _shares
+    ) external payable whenNotPaused nonReentrant {
+        require(_marketId > 0 && _marketId <= marketCount, "Invalid market");
+        require(_shares > 0, "Invalid shares amount");
+        require(msg.value >= MIN_STAKE, "Stake too low");
+        require(msg.value <= MAX_STAKE, "Stake too high");
 
-        uint256 predictionId = predictionIdCounter++;
-        predictions[predictionId] = Prediction({
-            marketId: _marketId,
-            predictor: msg.sender,
-            predictedValue: _predictedValue,
-            stake: msg.value,
-            confidence: _confidence,
-            isYes: _isYes,
-            resolved: false
-        });
+        MarketCore storage core = marketCores[_marketId];
+        MarketData storage data = marketData[_marketId];
+        UserPosition storage position = positions[_marketId][msg.sender];
 
-        emit PredictionCreated(predictionId, msg.sender, _marketId, _isYes);
-        return predictionId;
+        require(!core.isResolved, "Market resolved");
+        require(block.timestamp < core.endTime, "Market ended");
+
+        // Update shares and stakes
+        if (_isYes) {
+            data.yesShares += uint128(_shares);
+            position.yesShares += uint128(_shares);
+        } else {
+            data.noShares += uint128(_shares);
+            position.noShares += uint128(_shares);
+        }
+
+        data.totalStake += uint128(msg.value);
+        position.stakedAmount += uint128(msg.value);
+        position.lastInteractionTime = uint64(block.timestamp);
+
+        emit SharesTraded(_marketId, msg.sender, _isYes, _shares, msg.value, true);
     }
 
-    function resolveMarket(uint256 _marketId, bool _outcome) external onlyOwner {
-        Market storage market = markets[_marketId];
-        require(!market.isResolved, "Market is already resolved");
-        require(block.timestamp >= market.endTime, "Market has not ended yet");
+    // Function to claim rewards
+    function claimRewards(uint256 _marketId) external nonReentrant {
+        MarketCore storage core = marketCores[_marketId];
+        UserPosition storage position = positions[_marketId][msg.sender];
 
-        market.isResolved = true;
-        market.outcome = _outcome;
+        require(core.isResolved, "Market not resolved");
+        require(!position.hasClaimedRewards, "Already claimed");
+        require(position.stakedAmount > 0, "No stake");
+
+        uint256 reward = calculateReward(_marketId, msg.sender);
+        require(reward > 0, "No reward");
+
+        position.hasClaimedRewards = true;
+        (bool success, ) = msg.sender.call{value: reward}("");
+        require(success, "Transfer failed");
+
+        emit RewardsClaimed(_marketId, msg.sender, reward);
+    }
+
+    // Internal function to calculate rewards
+    function calculateReward(uint256 _marketId, address _user) internal view returns (uint256) {
+        MarketData storage data = marketData[_marketId];
+        UserPosition storage position = positions[_marketId][_user];
+
+        uint256 winningShares = data.outcome ? position.yesShares : position.noShares;
+        if (winningShares == 0) return 0;
+
+        uint256 totalWinningShares = data.outcome ? data.yesShares : data.noShares;
+        return (data.totalStake * winningShares) / totalWinningShares;
+    }
+
+    // Function to resolve market
+    function resolveMarket(uint256 _marketId, bool _outcome) external onlyOwner {
+        MarketCore storage core = marketCores[_marketId];
+        require(!core.isResolved, "Already resolved");
+        require(block.timestamp >= core.endTime, "Too early");
+
+        core.isResolved = true;
+        marketData[_marketId].outcome = _outcome;
 
         emit MarketResolved(_marketId, _outcome);
-
-        for (uint256 i = 1; i < predictionIdCounter; i++) {
-            if (predictions[i].marketId == _marketId && !predictions[i].resolved) {
-                _resolvePrediction(i, _outcome);
-            }
-        }
     }
 
-    function _resolvePrediction(uint256 _predictionId, bool _outcome) internal {
-        Prediction storage prediction = predictions[_predictionId];
-        uint256 accuracy = prediction.isYes == _outcome ? 100 : 0;
-        uint256 reward = calculateReward(prediction.stake, accuracy, prediction.confidence);
-
-        prediction.resolved = true;
-        predictorScores[prediction.predictor] += reward;
-        accuracyHistory[prediction.predictor] = (accuracyHistory[prediction.predictor] + accuracy) / 2;
-
-        if (accuracy >= 80) {
-            payable(prediction.predictor).transfer(reward);
-            emit PredictionResolved(_predictionId, true, reward);
-        } else {
-            emit PredictionResolved(_predictionId, false, 0);
-        }
+    // View functions
+    function getMarket(uint256 _marketId) external view returns (
+        MarketCore memory core,
+        MarketData memory data,
+        MarketLocation memory location
+    ) {
+        require(_marketId > 0 && _marketId <= marketCount, "Invalid market");
+        return (
+            marketCores[_marketId],
+            marketData[_marketId],
+            marketLocations[_marketId]
+        );
     }
 
-    function claimRewards(uint256 _marketId) external nonReentrant {
-        Market storage market = markets[_marketId];
-        require(market.isResolved, "Market is not resolved yet");
-
-        uint256 userShares = market.outcome ? userYesShares[_marketId][msg.sender] : userNoShares[_marketId][msg.sender];
-        require(userShares > 0, "No shares to claim");
-
-        uint256 totalWinningShares = market.outcome ? market.yesShares : market.noShares;
-        uint256 reward = (market.totalStake * userShares) / totalWinningShares;
-
-        if (market.outcome) {
-            userYesShares[_marketId][msg.sender] = 0;
-        } else {
-            userNoShares[_marketId][msg.sender] = 0;
-        }
-
-        require(token.transfer(msg.sender, reward), "Token transfer failed");
+    function getUserPosition(uint256 _marketId, address _user) external view returns (UserPosition memory) {
+        return positions[_marketId][_user];
     }
 
-    function _calculateShares(uint256 _marketId, bool _isYes, uint256 _amount) internal view returns (uint256) {
-        Market storage market = markets[_marketId];
-        uint256 totalShares = _isYes ? market.yesShares : market.noShares;
-        uint256 otherShares = _isYes ? market.noShares : market.yesShares;
-
-        if (totalShares == 0 && otherShares == 0) {
-            return _amount;
-        }
-
-        return (_amount * (totalShares + otherShares)) / otherShares;
+    // Emergency functions
+    function pause() external onlyOwner {
+        _pause();
     }
 
-    function _calculatePayout(uint256 _marketId, bool _isYes, uint256 _shares) internal view returns (uint256) {
-        Market storage market = markets[_marketId];
-        uint256 totalShares = _isYes ? market.yesShares : market.noShares;
-        uint256 otherShares = _isYes ? market.noShares : market.yesShares;
-
-        return (_shares * otherShares) / (totalShares + otherShares);
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
-    function calculateReward(uint256 stake, uint256 accuracy, uint256 confidence) internal pure returns (uint256) {
-        return (stake * accuracy * confidence) / 10000;
-    }
+    receive() external payable {}
 }
