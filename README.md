@@ -1,6 +1,6 @@
 # Perennial: Decentralized Impact Prediction Markets
 
-![Perennial Logo](public/perennial-logo.png)
+![Perennial Logo](https://github.com/Epistetechnician/perennial/blob/main/packages/nextjs/public/Perennial.png)
 ![Perennial](https://img.shields.io/badge/HydroMaster-1.0.0-green)
 ![React](https://img.shields.io/badge/React-18.0.0-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0.0-blue)
