@@ -6,17 +6,20 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 
 /**
- * @title perennialprediction
+ * @title PerennialPrediction
  * @dev Advanced prediction market for public goods and environmental projects
  */
+
+
 contract perennialprediction is Ownable, ReentrancyGuard, Pausable {
     using ECDSA for bytes32;
 
     // Constants for precision handling
     uint256 constant PRECISION = 1e18;
-    uint256 constant MIN_STAKE = 0.001 ether; // Minimum stake of 0.001 ETH
+    uint256 constant MIN_STAKE = 1e12; // Minimum stake of 0.000001 ETH (1 microETH)
     uint256 constant MAX_STAKE = 100 ether;   // Maximum stake of 100 ETH
 
     // Structs with optimized storage
@@ -81,7 +84,17 @@ contract perennialprediction is Ownable, ReentrancyGuard, Pausable {
     mapping(uint256 => mapping(address => UserPosition)) public positions;
     uint256 public marketCount;
 
-    constructor() Ownable(msg.sender) {}
+    IEAS private immutable eas;
+    bytes32 private schemaUID;
+
+    constructor(
+        address initialOwner,
+        address _easAddress,
+        bytes32 _schemaUID
+    ) Ownable(initialOwner) {
+        eas = IEAS(_easAddress);
+        schemaUID = _schemaUID;
+    }
 
     // Function to create a new market
     function createMarket(
@@ -93,12 +106,16 @@ contract perennialprediction is Ownable, ReentrancyGuard, Pausable {
         int256 _longitude,
         uint128 _minStake,
         uint128 _maxStake
-    ) external whenNotPaused nonReentrant returns (uint256) {
-        require(bytes(_title).length > 0, "Title required");
-        require(_endTime > block.timestamp, "Invalid end time");
-        require(_minStake >= MIN_STAKE, "Stake too low");
-        require(_maxStake <= MAX_STAKE, "Stake too high");
-        require(_maxStake > _minStake, "Invalid stake range");
+    ) public whenNotPaused nonReentrant returns (uint256) {
+        require(bytes(_title).length > 0 && bytes(_title).length <= 100, "Title length must be between 1 and 100");
+        require(bytes(_description).length <= 500, "Description too long");
+        require(_endTime > block.timestamp + 1 hours, "End time must be at least 1 hour in the future");
+        require(_minStake >= MIN_STAKE && _minStake <= _maxStake, "Invalid stake range");
+        require(_maxStake <= MAX_STAKE, "Max stake too high");
+        
+        // Add validation for latitude/longitude
+        require(_latitude >= -90 * 1e18 && _latitude <= 90 * 1e18, "Invalid latitude");
+        require(_longitude >= -180 * 1e18 && _longitude <= 180 * 1e18, "Invalid longitude");
 
         marketCount++;
         uint256 marketId = marketCount;
@@ -238,4 +255,62 @@ contract perennialprediction is Ownable, ReentrancyGuard, Pausable {
     }
 
     receive() external payable {}
+
+    function createMarketWithAttestation(
+        string memory _title,
+        string memory _description,
+        uint64 _endTime,
+        bool _isHyperLocal,
+        int256 _latitude,
+        int256 _longitude,
+        uint128 _minStake,
+        uint128 _maxStake
+    ) external returns (uint256 marketId, bytes32 attestationUID) {
+        // Create the market first
+        marketId = createMarket(
+            _title,
+            _description,
+            _endTime,
+            _isHyperLocal,
+            _latitude,
+            _longitude,
+            _minStake,
+            _maxStake
+        );
+        
+        // Create attestation data
+        bytes memory encodedData = abi.encode(
+            marketId,
+            _title,
+            _description,
+            _endTime,
+            _isHyperLocal,
+            _latitude,
+            _longitude,
+            0, // initial totalStake
+            false, // initial outcome
+            bytes32(0) // initial marketData
+        );
+
+        // Create attestation request using IEAS types
+        AttestationRequestData memory data = AttestationRequestData({
+            recipient: address(0), // No specific recipient
+            expirationTime: 0, // No expiration
+            revocable: true,
+            refUID: bytes32(0), // No reference UID
+            data: encodedData,
+            value: 0 // No value being sent
+        });
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: schemaUID,
+            data: data
+        });
+
+        // Attest the market creation
+        attestationUID = eas.attest(request);
+        
+        return (marketId, attestationUID);
+    }
+    
 }

@@ -1,5 +1,4 @@
 export * from "./useAnimationConfig";
-export * from "./useBurnerWallet";
 export * from "./useContractLogs";
 export * from "./useDeployedContractInfo";
 export * from "./useFetchBlocks";
@@ -14,4 +13,3 @@ export * from "./useScaffoldWriteContract";
 export * from "./useTargetNetwork";
 export * from "./useTransactor";
 export * from "./useWatchBalance";
-export * from "./useContractInteractions";

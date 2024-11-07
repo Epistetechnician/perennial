@@ -4,7 +4,7 @@
 
 :root,
 [data-theme] {
-  background: oklch(var(--b2));
+  background: oklch(var(--b4));
 }
 
 body {
@@ -21,14 +21,6 @@ h4 {
 
 p {
   margin: 1rem 0;
-}
-
-.btn {
-  @apply shadow-md;
-}
-
-.btn.btn-ghost {
-  @apply shadow-none;
 }
 
 .mapboxgl-canvas {

@@ -1,12 +1,6 @@
 # Perennial: Decentralized Impact Prediction Markets
 
-![Perennial Logo](https://github.com/Epistetechnician/perennial/blob/main/packages/nextjs/public/Perennial.png)
-![Perennial](https://img.shields.io/badge/HydroMaster-1.0.0-green)
-![React](https://img.shields.io/badge/React-18.0.0-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0.0-blue)
-![Tailwind](https://img.shields.io/badge/Tailwind-3.0.0-blueviolet)
-![Solidity](https://img.shields.io/badge/solidity-%3E%3D%200.6.8-lightgrey)
-![Javascript](https://shields.io/badge/JavaScript-F7DF1E?logo=JavaScript&logoColor=000&style=flat-square)
+![Perennial Logo](public/perennial-logo.png)
 
 ## Overview
 
@@ -34,6 +28,12 @@ Perennial is a revolutionary Web3 platform that combines prediction markets with
   - Integration with Toucan Protocol for carbon credits
   - Allo Protocol integration for fund allocation
 
+- **Ethereum Attestation Service (EAS) Integration**
+  - On-chain verification of market outcomes
+  - Immutable record of market creation and resolution
+  - Transparent reputation tracking
+  - Schema-based market attestations
+
 ## Technology Stack
 
 - **Frontend**
@@ -49,6 +49,7 @@ Perennial is a revolutionary Web3 platform that combines prediction markets with
   - OpenZeppelin contracts
 
 - **External Integrations**
+  - Ethereum Attestation Service (EAS)
   - Toucan Protocol (Carbon Credits)
   - Astral Protocol (Location Verification)
   - Allo Protocol (Fund Distribution)
@@ -98,11 +99,30 @@ perennial/
 
 Our core smart contracts handle:
 
-- Market creation and management
+- Market creation and management with EAS attestations
 - Share trading and settlement
-- Reputation tracking
+- Reputation tracking through verifiable attestations
 - Carbon credit integration
 - Location verification
+
+## Architecture
+
+### EAS Integration
+The platform uses EAS for:
+1. **Market Creation Attestations**
+   - Records market parameters
+   - Verifies creator reputation
+   - Stores location data for hyper-local markets
+
+2. **Market Resolution Attestations**
+   - Documents final outcomes
+   - Records stake distributions
+   - Maintains resolution proofs
+
+3. **Reputation Attestations**
+   - Tracks user participation
+   - Records successful predictions
+   - Maintains creator reliability scores
 
 ## Contributing
 

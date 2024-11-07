@@ -6,15 +6,610 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
   11155111: {
-    perennialprediction: {
-      address: "0xC2F76FdF8fB05159BC290E8bea9A554C5b6784f1",
+    MarketResolutionValidator: {
+      address: "0x16eeAf3509e6554A4C0e709Ae0cEd13D9E0FE9CB",
       abi: [
         {
           inputs: [
             {
               internalType: "address",
-              name: "_stakingToken",
+              name: "_easAddress",
               type: "address",
+            },
+            {
+              internalType: "bytes32",
+              name: "_schemaUID",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "AccessControlBadConfirmation",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+            {
+              internalType: "bytes32",
+              name: "neededRole",
+              type: "bytes32",
+            },
+          ],
+          name: "AccessControlUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ReentrancyGuardReentrantCall",
+          type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "bool",
+              name: "outcome",
+              type: "bool",
+            },
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "attestationId",
+              type: "bytes32",
+            },
+          ],
+          name: "ResolutionFinalized",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "bool",
+              name: "outcome",
+              type: "bool",
+            },
+          ],
+          name: "ResolutionProposed",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "validator",
+              type: "address",
+            },
+          ],
+          name: "ResolutionValidated",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "previousAdminRole",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "newAdminRole",
+              type: "bytes32",
+            },
+          ],
+          name: "RoleAdminChanged",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+          ],
+          name: "RoleGranted",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+          ],
+          name: "RoleRevoked",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "DEFAULT_ADMIN_ROLE",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MINIMUM_VALIDATORS",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "SCHEMA_UID",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "VALIDATOR_ROLE",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "uid",
+              type: "bytes32",
+            },
+          ],
+          name: "getAttestation",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "bytes32",
+                  name: "uid",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "schema",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "uint64",
+                  name: "time",
+                  type: "uint64",
+                },
+                {
+                  internalType: "uint64",
+                  name: "expirationTime",
+                  type: "uint64",
+                },
+                {
+                  internalType: "uint64",
+                  name: "revocationTime",
+                  type: "uint64",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "refUID",
+                  type: "bytes32",
+                },
+                {
+                  internalType: "address",
+                  name: "recipient",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "attester",
+                  type: "address",
+                },
+                {
+                  internalType: "bool",
+                  name: "revocable",
+                  type: "bool",
+                },
+                {
+                  internalType: "bytes",
+                  name: "data",
+                  type: "bytes",
+                },
+              ],
+              internalType: "struct MarketResolutionValidator.AttestationData",
+              name: "",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+          ],
+          name: "getRoleAdmin",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "grantRole",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "hasRole",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              internalType: "address",
+              name: "callerConfirmation",
+              type: "address",
+            },
+          ],
+          name: "renounceRole",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "resolutions",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "outcome",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "validationCount",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "isFinalized",
+              type: "bool",
+            },
+            {
+              internalType: "bytes32",
+              name: "attestationId",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "role",
+              type: "bytes32",
+            },
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "revokeRole",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes4",
+              name: "interfaceId",
+              type: "bytes4",
+            },
+          ],
+          name: "supportsInterface",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "outcome",
+              type: "bool",
+            },
+          ],
+          name: "validateResolution",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "uid",
+              type: "bytes32",
+            },
+          ],
+          name: "verifyAttestation",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+    PerennialPredictionSchema: {
+      address: "0x5caB4eB8DB1D188f0D73E708f05d3d02E6e1ae69",
+      abi: [
+        {
+          inputs: [],
+          name: "ALLO_POOL_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "IMPACT_MEASUREMENT_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "LOCATION_VERIFICATION_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MARKET_CREATION_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MARKET_RESOLUTION_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MARKET_STAKE_SCHEMA",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+    perennialprediction: {
+      address: "0xffDB8b3c65C5bB7e1a638E257D7C01A7561afb46",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "initialOwner",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_easAddress",
+              type: "address",
+            },
+            {
+              internalType: "bytes32",
+              name: "_schemaUID",
+              type: "bytes32",
             },
           ],
           stateMutability: "nonpayable",
@@ -62,9 +657,9 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
-              internalType: "uint64",
+              internalType: "uint256",
               name: "marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               indexed: true,
@@ -80,33 +675,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "enum perennialprediction.MarketType",
-              name: "marketType",
-              type: "uint8",
-            },
-            {
-              indexed: false,
-              internalType: "uint64",
+              internalType: "uint256",
               name: "endTime",
-              type: "uint64",
-            },
-            {
-              indexed: false,
-              internalType: "bool",
-              name: "isHyperLocal",
-              type: "bool",
-            },
-            {
-              indexed: false,
-              internalType: "int256",
-              name: "latitude",
-              type: "int256",
-            },
-            {
-              indexed: false,
-              internalType: "int256",
-              name: "longitude",
-              type: "int256",
+              type: "uint256",
             },
           ],
           name: "MarketCreated",
@@ -117,22 +688,9 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
-              internalType: "address",
-              name: "creator",
-              type: "address",
-            },
-          ],
-          name: "MarketCreatorAdded",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "uint64",
+              internalType: "uint256",
               name: "marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               indexed: false,
@@ -181,28 +739,9 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint128",
-              name: "newScore",
-              type: "uint128",
-            },
-          ],
-          name: "ReputationUpdated",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "uint64",
+              internalType: "uint256",
               name: "marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               indexed: true,
@@ -212,9 +751,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "uint128",
+              internalType: "uint256",
               name: "amount",
-              type: "uint128",
+              type: "uint256",
             },
           ],
           name: "RewardsClaimed",
@@ -225,14 +764,14 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
-              internalType: "uint64",
+              internalType: "uint256",
               name: "marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               indexed: true,
               internalType: "address",
-              name: "user",
+              name: "trader",
               type: "address",
             },
             {
@@ -243,15 +782,15 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "uint128",
-              name: "amount",
-              type: "uint128",
+              internalType: "uint256",
+              name: "shares",
+              type: "uint256",
             },
             {
               indexed: false,
-              internalType: "uint128",
-              name: "price",
-              type: "uint128",
+              internalType: "uint256",
+              name: "stakeAmount",
+              type: "uint256",
             },
             {
               indexed: false,
@@ -277,76 +816,11 @@ const deployedContracts = {
           type: "event",
         },
         {
-          inputs: [],
-          name: "EARLY_UNSTAKE_PENALTY",
-          outputs: [
-            {
-              internalType: "uint64",
-              name: "",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "MAX_STAKE_PERCENTAGE",
-          outputs: [
-            {
-              internalType: "uint64",
-              name: "",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "MIN_STAKE_PERIOD",
-          outputs: [
-            {
-              internalType: "uint64",
-              name: "",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "REPUTATION_THRESHOLD",
-          outputs: [
-            {
-              internalType: "uint64",
-              name: "",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
           inputs: [
             {
-              internalType: "address",
-              name: "_creator",
-              type: "address",
-            },
-          ],
-          name: "addMarketCreator",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint64",
+              internalType: "uint256",
               name: "_marketId",
-              type: "uint64",
+              type: "uint256",
             },
           ],
           name: "claimRewards",
@@ -356,6 +830,127 @@ const deployedContracts = {
         },
         {
           inputs: [
+            {
+              internalType: "string",
+              name: "_title",
+              type: "string",
+            },
+            {
+              internalType: "string",
+              name: "_description",
+              type: "string",
+            },
+            {
+              internalType: "uint64",
+              name: "_endTime",
+              type: "uint64",
+            },
+            {
+              internalType: "bool",
+              name: "_isHyperLocal",
+              type: "bool",
+            },
+            {
+              internalType: "int256",
+              name: "_latitude",
+              type: "int256",
+            },
+            {
+              internalType: "int256",
+              name: "_longitude",
+              type: "int256",
+            },
+            {
+              internalType: "uint128",
+              name: "_minStake",
+              type: "uint128",
+            },
+            {
+              internalType: "uint128",
+              name: "_maxStake",
+              type: "uint128",
+            },
+          ],
+          name: "createMarket",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "string",
+              name: "_title",
+              type: "string",
+            },
+            {
+              internalType: "string",
+              name: "_description",
+              type: "string",
+            },
+            {
+              internalType: "uint64",
+              name: "_endTime",
+              type: "uint64",
+            },
+            {
+              internalType: "bool",
+              name: "_isHyperLocal",
+              type: "bool",
+            },
+            {
+              internalType: "int256",
+              name: "_latitude",
+              type: "int256",
+            },
+            {
+              internalType: "int256",
+              name: "_longitude",
+              type: "int256",
+            },
+            {
+              internalType: "uint128",
+              name: "_minStake",
+              type: "uint128",
+            },
+            {
+              internalType: "uint128",
+              name: "_maxStake",
+              type: "uint128",
+            },
+          ],
+          name: "createMarketWithAttestation",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "marketId",
+              type: "uint256",
+            },
+            {
+              internalType: "bytes32",
+              name: "attestationUID",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_marketId",
+              type: "uint256",
+            },
+          ],
+          name: "getMarket",
+          outputs: [
             {
               components: [
                 {
@@ -375,23 +970,40 @@ const deployedContracts = {
                 },
                 {
                   internalType: "bool",
+                  name: "isResolved",
+                  type: "bool",
+                },
+                {
+                  internalType: "bool",
                   name: "isHyperLocal",
                   type: "bool",
                 },
                 {
-                  internalType: "int256",
-                  name: "latitude",
-                  type: "int256",
-                },
-                {
-                  internalType: "int256",
-                  name: "longitude",
-                  type: "int256",
-                },
-                {
-                  internalType: "enum perennialprediction.MarketType",
+                  internalType: "string",
                   name: "marketType",
-                  type: "uint8",
+                  type: "string",
+                },
+              ],
+              internalType: "struct perennialprediction.MarketCore",
+              name: "core",
+              type: "tuple",
+            },
+            {
+              components: [
+                {
+                  internalType: "uint128",
+                  name: "yesShares",
+                  type: "uint128",
+                },
+                {
+                  internalType: "uint128",
+                  name: "noShares",
+                  type: "uint128",
+                },
+                {
+                  internalType: "uint128",
+                  name: "totalStake",
+                  type: "uint128",
                 },
                 {
                   internalType: "uint128",
@@ -408,55 +1020,93 @@ const deployedContracts = {
                   name: "reputationRequired",
                   type: "uint64",
                 },
+                {
+                  internalType: "bool",
+                  name: "outcome",
+                  type: "bool",
+                },
               ],
-              internalType: "struct perennialprediction.MarketParams",
-              name: "params",
+              internalType: "struct perennialprediction.MarketData",
+              name: "data",
+              type: "tuple",
+            },
+            {
+              components: [
+                {
+                  internalType: "int256",
+                  name: "latitude",
+                  type: "int256",
+                },
+                {
+                  internalType: "int256",
+                  name: "longitude",
+                  type: "int256",
+                },
+                {
+                  internalType: "uint128",
+                  name: "poolId",
+                  type: "uint128",
+                },
+                {
+                  internalType: "address",
+                  name: "creator",
+                  type: "address",
+                },
+              ],
+              internalType: "struct perennialprediction.MarketLocation",
+              name: "location",
               type: "tuple",
             },
           ],
-          name: "createMarket",
-          outputs: [
-            {
-              internalType: "uint64",
-              name: "",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "nonpayable",
+          stateMutability: "view",
           type: "function",
         },
         {
           inputs: [
-            {
-              internalType: "address",
-              name: "_token",
-              type: "address",
-            },
             {
               internalType: "uint256",
-              name: "_amount",
+              name: "_marketId",
               type: "uint256",
             },
-          ],
-          name: "emergencyWithdraw",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "_user",
               type: "address",
             },
           ],
-          name: "isMarketCreator",
+          name: "getUserPosition",
           outputs: [
             {
-              internalType: "bool",
+              components: [
+                {
+                  internalType: "uint128",
+                  name: "yesShares",
+                  type: "uint128",
+                },
+                {
+                  internalType: "uint128",
+                  name: "noShares",
+                  type: "uint128",
+                },
+                {
+                  internalType: "uint128",
+                  name: "stakedAmount",
+                  type: "uint128",
+                },
+                {
+                  internalType: "uint64",
+                  name: "lastInteractionTime",
+                  type: "uint64",
+                },
+                {
+                  internalType: "bool",
+                  name: "hasClaimedRewards",
+                  type: "bool",
+                },
+              ],
+              internalType: "struct perennialprediction.UserPosition",
               name: "",
-              type: "bool",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -498,9 +1148,9 @@ const deployedContracts = {
               type: "bool",
             },
             {
-              internalType: "enum perennialprediction.MarketType",
+              internalType: "string",
               name: "marketType",
-              type: "uint8",
+              type: "string",
             },
           ],
           stateMutability: "view",
@@ -511,9 +1161,9 @@ const deployedContracts = {
           name: "marketCount",
           outputs: [
             {
-              internalType: "uint64",
+              internalType: "uint256",
               name: "",
-              type: "uint64",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -617,6 +1267,13 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "pause",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "paused",
           outputs: [
             {
@@ -682,9 +1339,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint64",
+              internalType: "uint256",
               name: "_marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               internalType: "bool",
@@ -698,24 +1355,11 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
-          name: "stakingToken",
-          outputs: [
-            {
-              internalType: "contract IERC20",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
           inputs: [
             {
-              internalType: "uint64",
+              internalType: "uint256",
               name: "_marketId",
-              type: "uint64",
+              type: "uint256",
             },
             {
               internalType: "bool",
@@ -723,19 +1367,14 @@ const deployedContracts = {
               type: "bool",
             },
             {
-              internalType: "uint128",
-              name: "_amount",
-              type: "uint128",
-            },
-            {
-              internalType: "bool",
-              name: "_isBuy",
-              type: "bool",
+              internalType: "uint256",
+              name: "_shares",
+              type: "uint256",
             },
           ],
           name: "tradeShares",
           outputs: [],
-          stateMutability: "nonpayable",
+          stateMutability: "payable",
           type: "function",
         },
         {
@@ -752,42 +1391,10 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "userReputations",
-          outputs: [
-            {
-              internalType: "uint128",
-              name: "score",
-              type: "uint128",
-            },
-            {
-              internalType: "uint64",
-              name: "marketsCreated",
-              type: "uint64",
-            },
-            {
-              internalType: "uint64",
-              name: "successfulPredictions",
-              type: "uint64",
-            },
-            {
-              internalType: "uint128",
-              name: "totalStaked",
-              type: "uint128",
-            },
-            {
-              internalType: "uint64",
-              name: "lastUpdateTime",
-              type: "uint64",
-            },
-          ],
-          stateMutability: "view",
+          inputs: [],
+          name: "unpause",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {

@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { Address } from "~~/components/scaffold-eth";
-import PerennialPredictor from './perrenialpredictor';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-const Home: NextPage = () => {
-  const { address: connectedAddress } = useAccount();
+// Dynamically import PerennialPredictor with no SSR
+const PerennialPredictor = dynamic(() => import('./perrenialpredictor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
+    </div>
+  ),
+});
 
+export default function Home() {
   return (
-    <>
-      <div className="flex items-center flex-col flex-grow pt-10">
-        <div className="px-5"></div>
-        <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
-          <PerennialPredictor />
-        </div>
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
       </div>
-    </>
+    }>
+      <main className="flex flex-col min-h-screen">
+        <PerennialPredictor />
+      </main>
+    </Suspense>
   );
-};
-
-export default Home;
+}

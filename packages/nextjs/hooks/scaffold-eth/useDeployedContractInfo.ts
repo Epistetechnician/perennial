@@ -1,51 +1,33 @@
 import { useEffect, useState } from "react";
-import { useTargetNetwork } from "./useTargetNetwork";
-import { useIsMounted } from "usehooks-ts";
+import { Address } from "viem";
 import { usePublicClient } from "wagmi";
-import { Contract, ContractCodeStatus, ContractName, contracts } from "~~/utils/scaffold-eth/contract";
+import { ContractName } from "~~/utils/scaffold-eth/contract";
+import { useIsMounted } from "usehooks-ts"; // Add this import
 
-/**
- * Gets the matching contract info for the provided contract name from the contracts present in deployedContracts.ts
- * and externalContracts.ts corresponding to targetNetworks configured in scaffold.config.ts
- */
-export const useDeployedContractInfo = <TContractName extends ContractName>(contractName: TContractName) => {
-  const isMounted = useIsMounted();
-  const { targetNetwork } = useTargetNetwork();
-  const deployedContract = contracts?.[targetNetwork.id]?.[contractName as ContractName] as Contract<TContractName>;
-  const [status, setStatus] = useState<ContractCodeStatus>(ContractCodeStatus.LOADING);
-  const publicClient = usePublicClient({ chainId: targetNetwork.id });
+export const useDeployedContractInfo = (contractName: ContractName) => {
+  const [data, setData] = useState<{ address: Address; abi: any } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const publicClient = usePublicClient();
+  const isMounted = useIsMounted(); // Add this line
 
   useEffect(() => {
-    const checkContractDeployment = async () => {
+    const getDeployedContractInfo = async () => {
       try {
-        if (!isMounted() || !publicClient) return;
-
-        if (!deployedContract) {
-          setStatus(ContractCodeStatus.NOT_FOUND);
-          return;
-        }
-
-        const code = await publicClient.getBytecode({
-          address: deployedContract.address,
+        // Your contract fetching logic here
+        if (!isMounted()) return;
+        setData({
+          address: "0xdB67D1BD3bF01380992Fe9804e12813a54d5AaB7" as Address, // From your deployedContracts.ts
+          abi: [] // Add your contract ABI here
         });
-
-        // If contract code is `0x` => no contract deployed on that address
-        if (code === "0x") {
-          setStatus(ContractCodeStatus.NOT_FOUND);
-          return;
-        }
-        setStatus(ContractCodeStatus.DEPLOYED);
-      } catch (e) {
-        console.error(e);
-        setStatus(ContractCodeStatus.NOT_FOUND);
+      } catch (error) {
+        console.error("Error loading contract info:", error);
+      } finally {
+        if (isMounted()) setIsLoading(false);
       }
     };
 
-    checkContractDeployment();
-  }, [isMounted, contractName, deployedContract, publicClient]);
+    getDeployedContractInfo();
+  }, [contractName, publicClient, isMounted]);
 
-  return {
-    data: status === ContractCodeStatus.DEPLOYED ? deployedContract : undefined,
-    isLoading: status === ContractCodeStatus.LOADING,
-  };
+  return { data, isLoading };
 };

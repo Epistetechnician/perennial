@@ -1,15 +1,9 @@
-import { defineConfig } from "@wagmi/cli";
-import { react } from "@wagmi/cli/plugins";
-import * as chains from "wagmi/chains";
-import { scaffoldConfig } from "./scaffold.config";
+import { createConfig, http } from 'wagmi';
+import { sepolia } from 'wagmi/chains';
 
-export default defineConfig({
-  out: "generated.ts",
-  contracts: [],
-  plugins: [react()],
-  networks: [
-    chains.hardhat,
-    chains.mainnet,
-    chains.sepolia,
-  ],
-});
+export const config = createConfig({
+  chains: [sepolia],
+  transports: {
+    [sepolia.id]: http(`https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`)
+  }
+}); 
