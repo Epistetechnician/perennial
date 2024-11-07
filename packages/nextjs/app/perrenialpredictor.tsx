@@ -2,8 +2,9 @@
 
 import * as dotenv from "dotenv"
 dotenv.config();
-import React, { useState, useEffect, ErrorInfo, useMemo } from 'react';
-import { useAccount, useWriteContract, useChainId, useWaitForTransactionReceipt } from 'wagmi';
+import { useState, useEffect, ErrorInfo, useMemo } from 'react';
+import type { FC } from 'react';
+import { useAccount, useWriteContract, useChainId, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 import { useDeployedContractInfo } from '~~/hooks/scaffold-eth/useDeployedContractInfo';
 import { useIsMounted } from "usehooks-ts";
@@ -19,9 +20,11 @@ import { EASIntegration } from "../../hardhat/src/eas-integration";
 import { useRouter } from 'next/navigation';
 import { type ContractName } from "~~/utils/scaffold-eth/contract";
 import { AbiCoder } from "ethers";
-import { useReadContract, useContractRead } from 'wagmi';
-import { readContract } from '@wagmi/core';
+import { useReadContract, useContractRead, useContractWrite, useContractReads } from 'wagmi';
+import { readContract, waitForTransactionReceipt } from '@wagmi/core';
 import type { ReadContractParameters, Config } from '@wagmi/core';
+import deployedContracts from "~~/generated/deployedContracts";
+import { getContract } from 'viem';
 
 // Define types for Market and Stake
 interface Market {
@@ -78,7 +81,7 @@ export const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Explicitly declare the component as a client component
-const PerennialPredictor: React.FC = (): JSX.Element => {
+const PerennialPredictor: FC = () => {
   const router = useRouter();
   const isMounted = useIsMounted();
 
@@ -96,8 +99,8 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     latitude: 0,
     longitude: 0,
     marketType: 0,
-    minStake: parseEther("0.001"),
-    maxStake: parseEther("100"),
+    minStake: "0.001",
+    maxStake: "100",
     reputationRequired: BigInt(1)
   });
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
@@ -112,9 +115,17 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(true);
   const [currentMarketCount, setCurrentMarketCount] = useState<bigint>(BigInt(0));
 
+  // Add type for deployedContractData
+  interface DeployedContractData {
+    address: `0x${string}`;
+    abi: any[];
+    name: string;
+  }
+
+  // Update the useDeployedContractInfo call with proper typing
   const { data: deployedContractData, isLoading: isContractLoading } = useDeployedContractInfo(
     "perennialprediction" as ContractName
-  );
+  ) as { data: DeployedContractData | null; isLoading: boolean };
 
   interface MarketCoreResponse {
     title: string;
@@ -148,28 +159,103 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     isLoading: boolean;
   }
 
-  const { data: marketCount, isError: isMarketCountError } = useReadContract({
-    address: deployedContractData?.address,
-    abi: deployedContractData?.abi,
-    functionName: 'marketCount',
+  const wagmiPublicClient = usePublicClient();
+
+  // Add these interfaces for contract return types
+  interface MarketCoreData {
+    title: string;
+    description: string;
+    endTime: bigint;
+    isResolved: boolean;
+    isHyperLocal: boolean;
+    marketType: string | number;
+  }
+
+  interface MarketDataStruct {
+    yesShares: bigint;
+    noShares: bigint;
+    totalStake: bigint;
+    minStake: bigint;
+    maxStake: bigint;
+    reputationRequired: bigint;
+    outcome: boolean;
+  }
+
+  interface MarketLocationData {
+    latitude: bigint;
+    longitude: bigint;
+  }
+
+  // Update the market count read
+  const { data: marketCount } = useReadContract({
+    address: deployedContracts["11155111"][0].contracts.perennialprediction.address,
+    abi: deployedContracts["11155111"][0].contracts.perennialprediction.abi,
+    functionName: 'marketCount'
   });
 
+  // Add this useEffect to log the market count
   useEffect(() => {
-    console.log("Contract data:", deployedContractData);
     console.log("Market count:", marketCount);
-    if (isMarketCountError) {
-      console.error("Error fetching market count");
-    }
+  }, [marketCount]);
 
-    if (marketCount) {
-      const count = typeof marketCount === 'bigint' 
-        ? marketCount 
-        : Array.isArray(marketCount) 
-          ? BigInt(marketCount[0] as number) 
-          : BigInt(0);
-      setCurrentMarketCount(count);
-    }
-  }, [deployedContractData, marketCount, isMarketCountError]);
+  // Update the market fetching logic with proper typing
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      if (!wagmiPublicClient || !marketCount) {
+        setIsLoadingMarkets(false); // Set loading to false if dependencies aren't ready
+        return;
+      }
+
+      setIsLoadingMarkets(true);
+      try {
+        const count = Number(marketCount);
+        console.log("Attempting to fetch", count, "markets");
+
+        // Create a single market for testing
+        const testMarket = {
+          id: 1,
+          title: "Test Market",
+          description: "This is a test market",
+          endTime: BigInt(Math.floor(Date.now() / 1000) + 86400), // 24 hours from now
+          isResolved: false,
+          yesShares: BigInt(0),
+          noShares: BigInt(0),
+          totalStake: BigInt(0),
+          outcome: false,
+          currentProbability: 0.5,
+          liquidityFlow: Math.random() * 2000,
+          webTrend: Math.random(),
+          aiTruth: Math.random(),
+          marketSize: {
+            current: 0,
+            min: 0.001,
+            max: 100,
+          },
+          historicalData: Array.from({ length: 30 }, (_, i) => ({
+            date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            superMetric: Math.random(),
+          })),
+          marketType: 0,
+          minStake: parseEther("0.001"),
+          maxStake: parseEther("100"),
+          reputationRequired: BigInt(1),
+          isHyperLocal: false,
+          latitude: BigInt(0),
+          longitude: BigInt(0),
+        };
+
+        setMarketsList([testMarket]);
+        setIsLoadingMarkets(false);
+
+      } catch (error) {
+        console.error("Error in fetchMarkets:", error);
+        notification.error("Failed to fetch markets");
+        setIsLoadingMarkets(false);
+      }
+    };
+
+    fetchMarkets();
+  }, [wagmiPublicClient, marketCount]);
 
   // Type definitions
   interface NewMarketState {
@@ -180,8 +266,8 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     latitude: number;
     longitude: number;
     marketType: number;
-    minStake: bigint;
-    maxStake: bigint;
+    minStake: string;
+    maxStake: string;
     reputationRequired: bigint;
   }
 
@@ -233,44 +319,6 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     args: readonly any[];
     chainId?: number;
   }
-
-  const fetchMarketData = async (marketId: bigint, contractData: any) => {
-    if (!contractData?.address) {
-      throw new Error("Contract data not available");
-    }
-
-    try {
-      const { data: coreData } = await useContractRead({
-        address: contractData.address,
-        abi: contractData.abi,
-        functionName: 'marketCores',
-        args: [marketId],
-      });
-
-      const { data: marketData } = await useContractRead({
-        address: contractData.address,
-        abi: contractData.abi,
-        functionName: 'marketData',
-        args: [marketId],
-      });
-
-      const { data: locationData } = await useContractRead({
-        address: contractData.address,
-        abi: contractData.abi,
-        functionName: 'marketLocations',
-        args: [marketId],
-      });
-
-      return {
-        core: coreData,
-        data: marketData,
-        location: locationData,
-      };
-    } catch (error) {
-      console.error("Error fetching market data:", error);
-      throw error;
-    }
-  };
 
   const processContractData = (
     marketData: MarketData,
@@ -392,37 +440,134 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
 
   // Update the useMarketDetails hook with proper typing
   const useMarketDetails = (marketId: bigint) => {
-    const { data: deployedContractData } = useDeployedContractInfo("perennialprediction" as ContractName);
-
-    const { data: core } = useReadContract({
-      address: deployedContractData?.address,
+    const { data: core, isError: isCoreError } = useReadContract({
+      address: deployedContractData?.address as `0x${string}`,
       abi: deployedContractData?.abi,
       functionName: 'marketCores',
-      args: [marketId]
-    } as const);
+      args: [marketId],
+    });
 
-    const { data: marketData } = useReadContract({
-      address: deployedContractData?.address,
+    const { data: marketData, isError: isMarketDataError } = useReadContract({
+      address: deployedContractData?.address as `0x${string}`,
       abi: deployedContractData?.abi,
       functionName: 'marketData',
-      args: [marketId]
-    } as const);
+      args: [marketId],
+    });
 
-    const { data: location } = useReadContract({
-      address: deployedContractData?.address,
+    const { data: location, isError: isLocationError } = useReadContract({
+      address: deployedContractData?.address as `0x${string}`,
       abi: deployedContractData?.abi,
       functionName: 'marketLocations',
-      args: [marketId]
-    } as const);
+      args: [marketId],
+    });
 
     return {
       core: core as MarketCore,
       marketData: marketData as MarketData,
       location: location as MarketLocation,
-      isError: !core || !marketData || !location,
+      isError: isCoreError || isMarketDataError || isLocationError,
       isLoading: !core || !marketData || !location,
     };
   };
+  interface CreateMarketArgs {
+    title: string;
+    description: string;
+    endTime: bigint;
+    isHyperLocal: boolean;
+    latitude: bigint;
+    longitude: bigint;
+    marketType: number;
+    minStake: bigint;
+    maxStake: bigint;
+    reputationRequired: bigint;
+  }
+
+  // Add this debug log to check the ABI
+  useEffect(() => {
+    if (deployedContractData?.abi) {
+      console.log("Contract ABI:", deployedContractData.abi);
+      // Log available functions
+      const functions = deployedContractData.abi
+        .filter((item: any) => item.type === 'function')
+        .map((fn: any) => fn.name);
+      console.log("Available functions:", functions);
+    }
+  }, [deployedContractData?.abi]);
+
+  // Update the contract write hook to use the correct type
+  const { writeContract: createMarket } = useWriteContract();
+
+  // Update the handleCreateMarket function
+  const handleCreateMarket = async () => {
+    if (!createMarket) {
+      notification.error("Contract not initialized");
+      return;
+    }
+
+    try {
+      setIsCreateMarketLoading(true);
+      
+      // Validate inputs
+      if (!newMarket.title || !newMarket.description || !newMarket.endTime) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      const endTimeUnix = Math.floor(new Date(newMarket.endTime).getTime() / 1000);
+      if (endTimeUnix <= Math.floor(Date.now() / 1000)) {
+        throw new Error("End time must be in the future");
+      }
+
+      createMarket({
+        abi: deployedContracts["11155111"][0].contracts.perennialprediction.abi,
+        address: deployedContracts["11155111"][0].contracts.perennialprediction.address,
+        functionName: 'createMarket',
+        args: [
+          newMarket.title,
+          newMarket.description,
+          BigInt(endTimeUnix),
+          newMarket.isHyperLocal,
+          BigInt(Math.round(newMarket.latitude * 1e6)),
+          BigInt(Math.round(newMarket.longitude * 1e6)),
+          parseEther(newMarket.minStake),
+          parseEther(newMarket.maxStake)
+        ],
+      });
+
+      notification.success("Market creation initiated");
+      setShowCreateModal(false);
+      
+      // Reset form
+      setNewMarket({
+        title: '',
+        description: '',
+        endTime: '',
+        isHyperLocal: false,
+        latitude: 0,
+        longitude: 0,
+        marketType: 0,
+        minStake: "0.001",
+        maxStake: "100",
+        reputationRequired: BigInt(1)
+      });
+
+    } catch (error) {
+      console.error("Error creating market:", error);
+      notification.error(error instanceof Error ? error.message : "Failed to create market");
+    } finally {
+      setIsCreateMarketLoading(false);
+    }
+  };
+
+  const handleStake = (market: Market, type: 'yes' | 'no') => {
+    setSelectedMarket(market);
+    setPredictionType(type);
+    setShowPredictionModal(true);
+  };
+
+  const handleUnstake = async (marketId: number, amount: number) => {
+    console.log(`Unstaking ${amount} from market ${marketId}`);
+  };
+
 
   // Create an array of market IDs based on currentMarketCount
   const marketIds = useMemo(() => {
@@ -435,45 +580,43 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     if (!deployedContractData?.address || !marketIds.length) return [];
 
     return marketIds.map(marketId => {
-      const { core, marketData, location } = useMarketDetails(marketId);
+      const { core, marketData, location, isError } = useMarketDetails(marketId);
 
-      if (!core || !marketData || !location) return null;
+      if (isError || !core || !marketData || !location) return null;
 
-      const market: Market = {
+      return {
         id: Number(marketId),
-        title: (core as MarketCore).title,
-        description: (core as MarketCore).description,
-        endTime: (core as MarketCore).endTime,
-        isResolved: (core as MarketCore).isResolved,
-        yesShares: (marketData as MarketData).yesShares,
-        noShares: (marketData as MarketData).noShares,
-        totalStake: (marketData as MarketData).totalStake,
-        outcome: (marketData as MarketData).outcome,
+        title: core.title,
+        description: core.description,
+        endTime: core.endTime,
+        isResolved: core.isResolved,
+        yesShares: marketData.yesShares,
+        noShares: marketData.noShares,
+        totalStake: marketData.totalStake,
+        outcome: marketData.outcome,
         currentProbability: Math.random(),
         liquidityFlow: Math.random() * 2000,
         webTrend: Math.random(),
         aiTruth: Math.random(),
         marketSize: {
-          current: Number(formatEther((marketData as MarketData).totalStake)),
-          min: 1000,
-          max: 10000,
+          current: Number(formatEther(marketData.totalStake)),
+          min: Number(formatEther(marketData.minStake)),
+          max: Number(formatEther(marketData.maxStake)),
         },
         historicalData: Array.from({ length: 30 }, (_, i) => ({
           date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           superMetric: Math.random(),
         })),
-        marketType: (core as MarketCore).marketType,
-        minStake: (marketData as MarketData).minStake,
-        maxStake: (marketData as MarketData).maxStake,
-        reputationRequired: (marketData as MarketData).reputationRequired,
-        isHyperLocal: (core as MarketCore).isHyperLocal,
-        latitude: (location as MarketLocation).latitude,
-        longitude: (location as MarketLocation).longitude,
-      };
-
-      return market;
+        marketType: core.marketType,
+        minStake: marketData.minStake,
+        maxStake: marketData.maxStake,
+        reputationRequired: marketData.reputationRequired,
+        isHyperLocal: core.isHyperLocal,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      } as Market;
     }).filter((market): market is Market => market !== null);
-  }, [deployedContractData, marketIds]);
+  }, [deployedContractData?.address, marketIds]);
 
   // Update the markets state when the memoized markets value changes
   useEffect(() => {
@@ -488,13 +631,7 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     console.log("Current markets:", markets);
   }, [deployedContractData?.address, currentMarketCount, marketIds, markets]);
 
-  const { data: marketData } = useReadContract({
-    address: deployedContractData?.address,
-    abi: deployedContractData?.abi,
-    functionName: 'marketCores',
-  });
-
-  const { writeContract } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
 
   const { data: marketsData, isError: isMarketsError } = useReadContract({
     address: deployedContractData?.address,
@@ -502,51 +639,13 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     functionName: 'marketCores',
   }) as { data: any[] | undefined, isError: boolean };
 
+  // Add this useEffect to trigger fetchMarkets when dependencies are ready
   useEffect(() => {
-    if (marketsData && Array.isArray(marketsData) && !isMarketsError) {
-      const processedMarkets = (marketsData as any[]).map((data: any, index: number) => {
-        if (data.result && Array.isArray(data.result)) {
-          return {
-            id: index + 1,
-            title: data.result[0] as string || `Untitled Market ${index + 1}`,
-            description: data.result[1] as string || '',
-            endTime: BigInt(data.result[2] as string || '0'),
-            isResolved: Boolean(data.result[3]),
-            yesShares: BigInt(data.result[4] as string || '0'),
-            noShares: BigInt(data.result[5] as string || '0'),
-            totalStake: BigInt(data.result[6] as string || '0'),
-            outcome: Boolean(data.result[7]),
-            isHyperLocal: Boolean(data.result[8]),
-            latitude: BigInt(data.result[9] as string || '0'),
-            longitude: BigInt(data.result[10] as string || '0'),
-            currentProbability: Math.random(),
-            liquidityFlow: Math.random() * 2000,
-            webTrend: Math.random(),
-            aiTruth: Math.random(),
-            marketSize: {
-              current: Number(formatEther(BigInt(data.result[6] as string || '0'))),
-              min: 1000,
-              max: 10000,
-            },
-            historicalData: Array.from({ length: 30 }, (_, index) => ({
-              date: new Date(Date.now() - (29 - index) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              superMetric: Math.random(),
-            })),
-            marketType: 0,
-            minStake: parseEther("0.01"),
-            maxStake: parseEther("100"),
-            reputationRequired: BigInt(1)
-          } as Market;
-        }
-        return null;
-      }).filter((market: Market | null): market is Market => market !== null);
-
-      setMarketsList(processedMarkets);
-    } else if (isMarketsError) {
-      console.error("Error fetching markets");
-      notification.error("Failed to fetch markets");
+    if (wagmiPublicClient && marketCount) {
+      console.log("Starting market fetch with count:", marketCount);
+      fetchMarkets();
     }
-  }, [marketsData, isMarketsError]);
+  }, [wagmiPublicClient, marketCount]);
 
   const [pendingTxHash, setPendingTxHash] = useState<TransactionHash | undefined>();
 
@@ -572,6 +671,7 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     }
   };
 
+
   const [easInstance, setEasInstance] = useState<EASIntegration | null>(null);
 
   // Update the publicClient usage
@@ -580,34 +680,10 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     return null; // Return null for now since we're using wagmi hooks instead
   }, []);
 
-  // Update the checkContractBalance function with proper typing
-  const checkContractBalance = async () => {
-    try {
-      if (deployedContractData?.address && isConnected) {
-        const result = await readContract(
-          {
-            address: deployedContractData.address as `0x${string}`,
-            abi: deployedContractData.abi,
-            functionName: 'getBalance',
-            args: [],
-          },
-          {
-            chainId: sepolia.id,
-          }
-        );
-        
-        console.log('Contract ETH balance:', formatEther(result as bigint));
-      }
-    } catch (error) {
-      console.error('Error checking contract balance:', error);
-      setError('Error checking contract balance');
-    }
-  };
-
+ 
   // Add useEffect for initial setup
   useEffect(() => {
     if (isConnected && address) {
-      checkContractBalance();
     }
   }, [isConnected, address]);
 
@@ -623,7 +699,49 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     );
   };
 
-  // Add the renderProjectCard function
+  // Add new state for map popup
+const [showLocationMap, setShowLocationMap] = useState<number | null>(null);
+
+// Add this component for the location map popup
+const LocationMapPopup = ({ market, onClose }: { market: Market; onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-green-400">Market Location</h3>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="h-[400px] rounded-lg overflow-hidden relative">
+          <AstralMap
+            isViewOnly={true}
+            initialLatitude={Number(market.latitude) / 1e6}
+            initialLongitude={Number(market.longitude) / 1e6}
+          />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="bg-gray-700 p-3 rounded-lg">
+            <p className="text-gray-400 text-sm">Latitude</p>
+            <p className="text-white font-semibold">{(Number(market.latitude) / 1e6).toFixed(6)}°</p>
+          </div>
+          <div className="bg-gray-700 p-3 rounded-lg">
+            <p className="text-gray-400 text-sm">Longitude</p>
+            <p className="text-white font-semibold">{(Number(market.longitude) / 1e6).toFixed(6)}°</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Update the renderProjectCard function to include the hyperlocal badge
+  // Update the renderProjectCard function
   const renderProjectCard = (market: Market) => {
     const superMetric = calculateSuperMetric(
       market.currentProbability,
@@ -637,26 +755,179 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
     const hoursLeft = Math.floor((timeLeft % (24 * 60 * 60)) / (60 * 60));
 
     return (
-      <div key={market.id} className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-6 shadow-lg">
+      <div key={market.id} className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-6 shadow-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(80,200,120,0.3)]">
         <h3 className="font-bold text-2xl text-green-400 mb-3">{market.title}</h3>
-        <p className="text-gray-300 mb-4">{market.description}</p>
+        <p className="text-gray-300 mb-4 h-20 overflow-hidden">{market.description}</p>
+        
+        {/* Chart Section */}
+        <div className="mb-6 h-64 bg-gray-700 rounded-lg p-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={market.historicalData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#888" 
+                tick={{ fill: '#888' }}
+                tickFormatter={(value) => value.split('-').slice(1).join('/')}
+              />
+              <YAxis 
+                stroke="#888" 
+                domain={[0, 1]} 
+                tick={{ fill: '#888' }}
+                tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#2D3748', 
+                  border: '1px solid #4A5568', 
+                  borderRadius: '0.375rem',
+                  color: '#E2E8F0'
+                }}
+                formatter={(value: number) => [`${(value * 100).toFixed(2)}%`]}
+                labelFormatter={(label) => new Date(label).toLocaleDateString()}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="superMetric" 
+                stroke="#68D391" 
+                strokeWidth={2} 
+                dot={false}
+                name="Prediction Probability"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Market Metrics Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div className="bg-gray-700 p-3 rounded-lg">
+            <p className="text-gray-400 mb-1">Market Size</p>
+            <p className="font-semibold text-white">
+              {Number(formatEther(market.totalStake)).toFixed(2)} ETH
+            </p>
+          </div>
+          <div className="bg-gray-700 p-3 rounded-lg">
+            <p className="text-gray-400 mb-1">Current Probability</p>
+            <p className="font-semibold text-green-400">
+              {(Number(market.yesShares) / (Number(market.yesShares) + Number(market.noShares) || 1) * 100).toFixed(1)}%
+            </p>
+          </div>
+          <div className="bg-gray-700 p-3 rounded-lg flex items-center">
+            <Activity size={16} className="mr-2 text-blue-400" />
+            <div>
+              <p className="text-gray-400">Yes Shares</p>
+              <p className="font-semibold text-white">{Number(formatEther(market.yesShares)).toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="bg-gray-700 p-3 rounded-lg flex items-center">
+            <Brain size={16} className="mr-2 text-purple-400" />
+            <div>
+              <p className="text-gray-400">No Shares</p>
+              <p className="font-semibold text-white">{Number(formatEther(market.noShares)).toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Time and Participants Info */}
+        <div className="flex justify-between items-center mb-4 text-sm">
+          <div className="flex items-center">
+            <Clock size={16} className="mr-2 text-yellow-400" />
+            <span className="text-gray-300">
+              {daysLeft}d {hoursLeft}h left
+            </span>
+          </div>
+          <div className="flex items-center">
+            <Users size={16} className="mr-2 text-indigo-400" />
+            <span className="text-gray-300">
+              {(Number(market.yesShares) + Number(market.noShares))} shares
+            </span>
+          </div>
+        </div>
+
+        {/* Trading Buttons */}
         <div className="flex justify-between mt-4">
           <button
             onClick={() => handleStake(market, 'yes')}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full"
+            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full flex items-center transition-colors duration-300"
           >
-            <TrendingUp size={16} className="mr-2 inline" />
+            <TrendingUp size={16} className="mr-2" />
             Yes
           </button>
           <button
             onClick={() => handleStake(market, 'no')}
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full"
+            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full flex items-center transition-colors duration-300"
           >
-            <TrendingDown size={16} className="mr-2 inline" />
+            <TrendingDown size={16} className="mr-2" />
             No
           </button>
         </div>
+        
+
+        {/* User Position Display */}
+        {userStakes[market.id] && renderUserPosition(market)}
       </div>
+    );
+  };
+
+  // Add the renderUserPosition function
+  const renderUserPosition = (market: Market) => {
+    const userStake = userStakes[market.id];
+    if (!userStake) return null;
+
+    const stakedAmount = userStake.amount;
+    const position = userStake.position;
+    const totalShares = Number(market.yesShares) + Number(market.noShares);
+    const currentValue = position === 'yes' 
+      ? (Number(market.yesShares) / totalShares) * stakedAmount
+      : (Number(market.noShares) / totalShares) * stakedAmount;
+
+    return (
+      <div className="bg-gray-700 p-3 rounded-lg mt-4">
+        <h4 className="text-green-400 font-semibold mb-2">Your Position</h4>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-gray-400">Staked</p>
+            <p className="text-white">{stakedAmount.toFixed(4)} ETH</p>
+          </div>
+          <div>
+            <p className="text-gray-400">Position</p>
+            <p className={position === 'yes' ? 'text-green-400' : 'text-red-400'}>
+              {position.toUpperCase()}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-400">Current Value</p>
+            <p className="text-white">{currentValue.toFixed(4)} ETH</p>
+          </div>
+          <div>
+            <p className="text-gray-400">P/L</p>
+            <p className={currentValue >= stakedAmount ? 'text-green-400' : 'text-red-400'}>
+              {((currentValue - stakedAmount) / stakedAmount * 100).toFixed(2)}%
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add calculateSuperMetric function
+  const calculateSuperMetric = (
+    probability: number,
+    liquidity: number,
+    webTrend: number,
+    aiTruth: number
+  ): number => {
+    const weights = {
+      probability: 0.3,
+      liquidity: 0.2,
+      webTrend: 0.2,
+      aiTruth: 0.3
+    };
+    return (
+      probability * weights.probability +
+      (liquidity / 2000) * weights.liquidity +
+      webTrend * weights.webTrend +
+      aiTruth * weights.aiTruth
     );
   };
 
@@ -710,21 +981,10 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
               <p className="text-center text-gray-400 mt-8">No markets available. Create one to get started!</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {marketsList.map((market) => renderProjectCard(market))}
+                {marketsList.map(renderProjectCard)}
               </div>
             )}
-             <div className="bg-yellow-900 border-yellow-700 p-4 rounded mt-6">
-              <h3 className="flex items-center text-yellow-300 font-semibold mb-2">
-                <AlertTriangle className="mr-2" />
-                Important Notes
-              </h3>
-              <ul className="list-disc list-inside text-yellow-100">
-                <li>Minimum project stake: 20% of prediction market position</li>
-                <li>Stake-to-prediction ratio must be maintained throughout market lifetime</li>
-                <li>Early unstaking penalties apply to prevent abandonment</li>
-                <li>Additional staking opportunities available throughout project lifecycle</li>
-              </ul>
-            </div>
+
             {showCreateModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                 <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
@@ -804,16 +1064,13 @@ const PerennialPredictor: React.FC = (): JSX.Element => {
         ) : (
           <div>Contract not found or not deployed.</div>
         )}
-
       </div>
       {showPredictionModal && renderPredictionModal()}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Create New Market</h2>
-            {/* Add your create modal content here */}
-          </div>
-        </div>
+      {showLocationMap !== null && selectedMarket && (
+        <LocationMapPopup 
+          market={selectedMarket} 
+          onClose={() => setShowLocationMap(null)} 
+        />
       )}
     </ErrorBoundary>
   );

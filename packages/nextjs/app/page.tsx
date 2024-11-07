@@ -1,28 +1,18 @@
-'use client';
+"use client";
 
 import dynamic from 'next/dynamic';
-import { Suspense } from 'react';
+import ErrorBoundary from '../components/ErrorBoundary';
 
-// Dynamically import PerennialPredictor with no SSR
-const PerennialPredictor = dynamic(() => import('./perrenialpredictor'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
-    </div>
-  ),
-});
+// Dynamically import the PerennialPredictor component with no SSR
+const PerennialPredictor = dynamic(
+  () => import('./perrenialpredictor'),
+  { ssr: false }
+);
 
-export default function Home() {
+export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
-      </div>
-    }>
-      <main className="flex flex-col min-h-screen">
-        <PerennialPredictor />
-      </main>
-    </Suspense>
+    <ErrorBoundary>
+      <PerennialPredictor />
+    </ErrorBoundary>
   );
 }

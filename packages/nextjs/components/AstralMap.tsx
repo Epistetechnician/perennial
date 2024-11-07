@@ -3,7 +3,10 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface AstralMapProps {
-  onLocationSelect: (lat: number, lng: number) => void;
+  initialLatitude?: number;
+  initialLongitude?: number;
+  onLocationSelect?: (lat: number, lng: number) => void;
+  isViewOnly?: boolean;
 }
 
 interface SearchResult {
@@ -23,7 +26,12 @@ const searchResultStyle = {
   transition: 'background-color 0.2s ease'
 } as const;
 
-const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
+const AstralMap: React.FC<AstralMapProps> = ({
+  initialLatitude,
+  initialLongitude,
+  onLocationSelect,
+  isViewOnly = false
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,12 +64,12 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
   };
 
   const handleSearchSelect = (result: SearchResult) => {
-    if (map.current) {
+    if (map.current && onLocationSelect) {
       // First zoom out slightly for a better animation
       map.current.easeTo({
         zoom: 2,
         duration: 1000,
-        easing: (t) => t * (2 - t) // Ease out quadratic
+        easing: (t) => t * (2 - t)
       });
 
       // Then after zooming out, fly to the location
@@ -71,10 +79,10 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
             center: result.center,
             zoom: 8,
             duration: 2500,
-            pitch: 60, // Add some pitch for dramatic effect
-            bearing: 0, // Reset bearing
-            essential: true, // This animation is considered essential for the navigation
-            curve: 1.42, // Increase curve for more dramatic flight
+            pitch: 60,
+            bearing: 0,
+            essential: true,
+            curve: 1.42,
             easing: (t) => {
               return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
             },
@@ -82,7 +90,7 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
 
           // Add a marker at the selected location
           const marker = new mapboxgl.Marker({
-            color: "#10B981", // Green color to match your theme
+            color: "#10B981",
             scale: 0.8
           })
             .setLngLat(result.center)
@@ -90,6 +98,7 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
         }
       }, 1000);
 
+      // Only call onLocationSelect if it exists
       onLocationSelect(result.center[1], result.center[0]);
       setSearchResults([]);
       setSearchQuery(result.place_name);
@@ -137,10 +146,12 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
         // Add navigation control
         newMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Add click handler
-        newMap.on('click', (e) => {
-          onLocationSelect(e.lngLat.lat, e.lngLat.lng);
-        });
+        // Add click handler with null check
+        if (!isViewOnly && onLocationSelect) { // Only add click handler if not view-only and onLocationSelect exists
+          newMap.on('click', (e) => {
+            onLocationSelect(e.lngLat.lat, e.lngLat.lng);
+          });
+        }
 
         // Auto-rotation
         let rotationInterval = setInterval(() => {
@@ -170,7 +181,7 @@ const AstralMap: React.FC<AstralMapProps> = ({ onLocationSelect }) => {
         map.current = null;
       }
     };
-  }, [onLocationSelect]);
+  }, [onLocationSelect, isViewOnly]);
 
   return (
     <div style={{ width: '100%', height: '400px', position: 'relative' }}>
