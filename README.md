@@ -1,6 +1,6 @@
 # Perennial: Decentralized Impact Prediction Markets
 
-![Perennial Logo](public/favicon.png)
+![Perennial Logo](https://github.com/Epistetechnician/perennial/blob/main/packages/nextjs/public/favicon.png?raw=true)
 
 ## Overview
 
