@@ -75,7 +75,13 @@ yarn install
 cp packages/nextjs/.env.example packages/nextjs/.env.local
 ```
 
-4.Start the development server:
+4.Deploy contracts
+```bash
+cd hardhat
+yarn deploy
+```
+
+5.Start the development server:
 
 ```bash
 yarn dev
