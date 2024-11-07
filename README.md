@@ -1,6 +1,6 @@
 # Perennial: Decentralized Impact Prediction Markets
 
-![Perennial Logo](public/perennial-logo.png)
+![Perennial Logo](public/favicon.png)
 
 ## Overview
 
